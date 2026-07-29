@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta
+      name="description"
+      content="Explore pseudocode snapshots from the LearnLab programming-process dataset."
+    >
+    <title>LearnLab History Explorer</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="catalog-panel">
+        <header class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div>
+            <p class="eyebrow">LearnLab</p>
+            <h1>History Explorer</h1>
+          </div>
+        </header>
+
+        <section class="catalog-section assignment-section" aria-labelledby="assignments-title">
+          <div class="section-heading">
+            <div>
+              <p class="step-label">01</p>
+              <h2 id="assignments-title">Assignment</h2>
+            </div>
+            <span id="assignment-count" class="count-pill">—</span>
+          </div>
+          <div id="assignment-list" class="assignment-list" aria-live="polite">
+            <div class="skeleton assignment-skeleton"></div>
+            <div class="skeleton assignment-skeleton"></div>
+          </div>
+        </section>
+
+        <section class="catalog-section student-section" aria-labelledby="students-title">
+          <div class="section-heading">
+            <div>
+              <p class="step-label">02</p>
+              <h2 id="students-title">Student</h2>
+            </div>
+            <span id="student-count" class="count-pill">—</span>
+          </div>
+          <label class="search-box">
+            <span class="search-icon" aria-hidden="true"></span>
+            <span class="sr-only">Search anonymized students</span>
+            <input
+              id="student-search"
+              type="search"
+              placeholder="Search anonymized ID"
+              autocomplete="off"
+              disabled
+            >
+          </label>
+          <div id="student-list" class="student-list" aria-live="polite">
+            <p class="quiet-message">Choose an assignment to see its students.</p>
+          </div>
+        </section>
+      </aside>
+
+      <aside class="timeline-panel" aria-labelledby="timeline-title">
+        <header class="timeline-header">
+          <div>
+            <p class="eyebrow">Development trace</p>
+            <h2 id="timeline-title">Select a student</h2>
+          </div>
+          <span id="timeline-count" class="count-pill count-pill-dark">—</span>
+        </header>
+
+        <div id="timeline-tools" class="timeline-tools is-hidden">
+          <div class="scrubber-label">
+            <span>Beginning</span>
+            <strong id="scrubber-position">—</strong>
+            <span>Latest</span>
+          </div>
+          <input
+            id="history-scrubber"
+            class="history-scrubber"
+            type="range"
+            min="0"
+            max="0"
+            value="0"
+            aria-label="Select a history step"
+          >
+        </div>
+
+        <div id="timeline-list" class="timeline-list" aria-live="polite">
+          <div class="timeline-empty">
+            <div class="empty-orbit" aria-hidden="true"><span></span></div>
+            <p>Choose a student to reveal their sequence of code snapshots.</p>
+          </div>
+        </div>
+      </aside>
+
+      <main class="viewer-panel">
+        <header class="viewer-toolbar">
+          <div id="viewer-context" class="viewer-context">
+            <p class="eyebrow">Pseudocode snapshot</p>
+            <h2>Ready to explore</h2>
+            <p>Select an assignment and student from the catalog.</p>
+          </div>
+          <div class="step-controls" aria-label="Snapshot navigation">
+            <button id="previous-step" class="icon-button" type="button" disabled aria-label="Previous snapshot">
+              <span aria-hidden="true">←</span>
+            </button>
+            <span id="step-position" class="step-position">— / —</span>
+            <button id="next-step" class="icon-button" type="button" disabled aria-label="Next snapshot">
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </header>
+
+        <section id="snapshot-workspace" class="snapshot-workspace is-hidden">
+          <div class="snapshot-meta">
+            <div class="meta-primary">
+              <span id="event-badge" class="event-badge">Event</span>
+              <span id="snapshot-time">—</span>
+              <span class="meta-divider" aria-hidden="true"></span>
+              <span id="state-id">State —</span>
+            </div>
+            <button id="copy-state" class="text-button" type="button">Copy state ID</button>
+          </div>
+
+          <div class="view-switcher" role="tablist" aria-label="Pseudocode display">
+            <button
+              id="snapshot-tab"
+              class="view-tab is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="snapshot-view"
+            >
+              Full snapshot
+            </button>
+            <button
+              id="changes-tab"
+              class="view-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="changes-view"
+            >
+              Changes
+              <span id="change-count" class="tab-count">0</span>
+            </button>
+          </div>
+
+          <div id="code-loading" class="code-loading is-hidden" aria-live="polite">
+            <span></span><span></span><span></span>
+            <p>Loading snapshot</p>
+          </div>
+
+          <div id="snapshot-view" class="code-surface" role="tabpanel">
+            <ol id="snapshot-code" class="code-lines" aria-label="Pseudocode"></ol>
+          </div>
+          <div id="changes-view" class="code-surface is-hidden" role="tabpanel">
+            <ol id="diff-code" class="diff-lines" aria-label="Pseudocode changes"></ol>
+          </div>
+
+          <div id="unavailable-state" class="unavailable-state is-hidden">
+            <div class="unavailable-icon" aria-hidden="true">∅</div>
+            <h3>Snapshot representation unavailable</h3>
+            <p>
+              This timeline position references a blank code state in the source dataset.
+              Its position is preserved so the development trace remains complete.
+            </p>
+          </div>
+
+          <details id="ast-details" class="ast-details">
+            <summary>
+              <span>
+                <span class="summary-kicker">Complete source representation</span>
+                <strong>Inspect raw AST</strong>
+              </span>
+              <span class="summary-action">Expand <span aria-hidden="true">↓</span></span>
+            </summary>
+            <pre id="ast-code" class="ast-code"></pre>
+          </details>
+        </section>
+
+        <section id="viewer-empty" class="viewer-empty">
+          <div class="empty-illustration" aria-hidden="true">
+            <div class="code-card code-card-back"><span></span><span></span><span></span></div>
+            <div class="code-card code-card-front"><span></span><span></span><span></span><span></span></div>
+          </div>
+          <p class="eyebrow">A program, frame by frame</p>
+          <h2>Follow how an idea becomes code.</h2>
+          <p>
+            Pick an assignment and an anonymized student to inspect every available
+            pseudocode snapshot, including undo and redo steps.
+          </p>
+        </section>
+
+        <div id="app-error" class="app-error is-hidden" role="alert">
+          <strong>Something went wrong.</strong>
+          <span id="error-message"></span>
+          <button id="dismiss-error" type="button">Dismiss</button>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

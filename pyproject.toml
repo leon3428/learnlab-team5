@@ -1,0 +1,28 @@
+[project]
+name = "learnlab-team5"
+version = "0.1.0"
+description = "Local development-history explorer for the LearnLab ProgSnap2 dataset"
+readme = "README.md"
+authors = [
+    { name = "leon3428", email = "leon.stjepan@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.116.0",
+    "uvicorn>=0.35.0",
+]
+
+[project.scripts]
+learnlab-team5 = "learnlab_team5:main"
+learnlab-analysis-db = "learnlab_team5.analysis_db:main"
+learnlab-opcodes = "learnlab_team5.opcodes:main"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"
