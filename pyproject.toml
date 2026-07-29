@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "apted>=1.0.3",
     "fastapi>=0.116.0",
+    "matplotlib>=3.11.1",
     "uvicorn>=0.35.0",
 ]
 
@@ -21,6 +22,8 @@ learnlab-opcodes = "learnlab_team5.opcodes:main"
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "ipykernel>=7.0.0",
+    "matplotlib>=3.10.0",
     "pytest>=8.4.0",
 ]
 
