@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from snap_ast import AstNode, ProgramFormatError, to_ast, to_ast_with_values
+
 SCHEMA_VERSION = 1
 SOURCE_FILES = ("Assignment.csv", "Assignments.md", "MainTable.csv", "CodeStates.csv")
 
@@ -464,8 +466,16 @@ class Repository:
         ast_text = current["ast_json"]
         ast_pretty: str | None = None
         ast_error: str | None = None
+        ast_nodes: list[dict[str, Any]] = []
+        ast_with_values_nodes: list[dict[str, Any]] = []
         if ast_text and current["ast_valid"]:
-            ast_pretty = json.dumps(json.loads(ast_text), indent=2, ensure_ascii=False)
+            parsed_ast = json.loads(ast_text)
+            ast_pretty = json.dumps(parsed_ast, indent=2, ensure_ascii=False)
+            try:
+                ast_nodes = _flatten_ast(to_ast(parsed_ast))
+                ast_with_values_nodes = _flatten_ast(to_ast_with_values(parsed_ast))
+            except ProgramFormatError as error:
+                ast_error = f"The stored AST cannot be interpreted: {error}"
         elif ast_text:
             ast_error = "The stored AST is not valid JSON."
 
@@ -478,6 +488,8 @@ class Repository:
             "ast": ast_pretty,
             "ast_available": ast_pretty is not None,
             "ast_error": ast_error,
+            "ast_nodes": ast_nodes,
+            "ast_with_values_nodes": ast_with_values_nodes,
             "diff": diff,
             "changed_lines": changed_lines,
         }
@@ -499,6 +511,16 @@ class Repository:
 
 def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _flatten_ast(root: AstNode) -> list[dict[str, Any]]:
+    nodes: list[dict[str, Any]] = []
+    stack: list[tuple[AstNode, int]] = [(root, 0)]
+    while stack:
+        node, depth = stack.pop()
+        nodes.append({"name": node.name, "depth": depth})
+        stack.extend((child, depth + 1) for child in reversed(node.children))
+    return nodes
 
 
 def _line_diff(

@@ -39,6 +39,11 @@ def test_api_and_slash_containing_subject_id(dataset_dir: Path, tmp_path: Path) 
             )
             assert snapshot.status_code == 200
             assert snapshot.json()["changed_lines"]
+            assert snapshot.json()["ast_nodes"][0] == {"name": "snapshot", "depth": 0}
+            assert snapshot.json()["ast_with_values_nodes"][-1] == {
+                "name": "move=10",
+                "depth": 2,
+            }
 
     asyncio.run(scenario())
 
@@ -81,5 +86,8 @@ def test_frontend_assets_are_served(dataset_dir: Path, tmp_path: Path) -> None:
     assert page.status_code == script.status_code == stylesheet.status_code == 200
     assert "LearnLab History Explorer" in page.text
     assert "history-scrubber" in page.text
+    assert "ast-values-tab" in page.text
     assert "previous_code_state_id" in script.text
+    assert "renderAstNodes" in script.text
     assert ".timeline-step.is-active" in stylesheet.text
+    assert ".tree-line" in stylesheet.text

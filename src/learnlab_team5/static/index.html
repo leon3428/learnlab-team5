@@ -101,7 +101,7 @@
       <main class="viewer-panel">
         <header class="viewer-toolbar">
           <div id="viewer-context" class="viewer-context">
-            <p class="eyebrow">Pseudocode snapshot</p>
+            <p class="eyebrow">Code snapshot</p>
             <h2>Ready to explore</h2>
             <p>Select an assignment and student from the catalog.</p>
           </div>
@@ -127,16 +127,36 @@
             <button id="copy-state" class="text-button" type="button">Copy state ID</button>
           </div>
 
-          <div class="view-switcher" role="tablist" aria-label="Pseudocode display">
+          <div class="view-switcher" role="tablist" aria-label="Snapshot representation">
             <button
-              id="snapshot-tab"
+              id="pseudocode-tab"
               class="view-tab is-active"
               type="button"
               role="tab"
               aria-selected="true"
-              aria-controls="snapshot-view"
+              aria-controls="pseudocode-view"
             >
-              Full snapshot
+              Pseudocode
+            </button>
+            <button
+              id="ast-tab"
+              class="view-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="ast-view"
+            >
+              AST
+            </button>
+            <button
+              id="ast-values-tab"
+              class="view-tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="ast-values-view"
+            >
+              AST + values
             </button>
             <button
               id="changes-tab"
@@ -156,8 +176,18 @@
             <p>Loading snapshot</p>
           </div>
 
-          <div id="snapshot-view" class="code-surface" role="tabpanel">
-            <ol id="snapshot-code" class="code-lines" aria-label="Pseudocode"></ol>
+          <div id="pseudocode-view" class="code-surface" role="tabpanel">
+            <ol id="pseudocode-code" class="code-lines" aria-label="Pseudocode"></ol>
+          </div>
+          <div id="ast-view" class="code-surface is-hidden" role="tabpanel">
+            <ol id="ast-tree" class="tree-lines" aria-label="AST node tree"></ol>
+          </div>
+          <div id="ast-values-view" class="code-surface is-hidden" role="tabpanel">
+            <ol
+              id="ast-values-tree"
+              class="tree-lines"
+              aria-label="AST node tree with values"
+            ></ol>
           </div>
           <div id="changes-view" class="code-surface is-hidden" role="tabpanel">
             <ol id="diff-code" class="diff-lines" aria-label="Pseudocode changes"></ol>
@@ -165,8 +195,8 @@
 
           <div id="unavailable-state" class="unavailable-state is-hidden">
             <div class="unavailable-icon" aria-hidden="true">∅</div>
-            <h3>Snapshot representation unavailable</h3>
-            <p>
+            <h3 id="unavailable-title">Snapshot representation unavailable</h3>
+            <p id="unavailable-message">
               This timeline position references a blank code state in the source dataset.
               Its position is preserved so the development trace remains complete.
             </p>

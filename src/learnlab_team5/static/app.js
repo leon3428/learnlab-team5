@@ -5,7 +5,8 @@ const state = {
   selectedAssignment: null,
   selectedSubject: null,
   selectedStep: -1,
-  view: "snapshot",
+  view: "pseudocode",
+  currentSnapshot: null,
   snapshotCache: new Map(),
   requestToken: 0,
 };
@@ -32,14 +33,22 @@ const elements = {
   snapshotTime: document.querySelector("#snapshot-time"),
   stateId: document.querySelector("#state-id"),
   copyState: document.querySelector("#copy-state"),
-  snapshotTab: document.querySelector("#snapshot-tab"),
+  pseudocodeTab: document.querySelector("#pseudocode-tab"),
+  astTab: document.querySelector("#ast-tab"),
+  astValuesTab: document.querySelector("#ast-values-tab"),
   changesTab: document.querySelector("#changes-tab"),
   changeCount: document.querySelector("#change-count"),
-  snapshotView: document.querySelector("#snapshot-view"),
+  pseudocodeView: document.querySelector("#pseudocode-view"),
+  astView: document.querySelector("#ast-view"),
+  astValuesView: document.querySelector("#ast-values-view"),
   changesView: document.querySelector("#changes-view"),
-  snapshotCode: document.querySelector("#snapshot-code"),
+  pseudocodeCode: document.querySelector("#pseudocode-code"),
+  astTree: document.querySelector("#ast-tree"),
+  astValuesTree: document.querySelector("#ast-values-tree"),
   diffCode: document.querySelector("#diff-code"),
   unavailable: document.querySelector("#unavailable-state"),
+  unavailableTitle: document.querySelector("#unavailable-title"),
+  unavailableMessage: document.querySelector("#unavailable-message"),
   loading: document.querySelector("#code-loading"),
   astDetails: document.querySelector("#ast-details"),
   astCode: document.querySelector("#ast-code"),
@@ -215,6 +224,7 @@ function clearHistory() {
   `;
   elements.workspace.classList.add("is-hidden");
   elements.viewerEmpty.classList.remove("is-hidden");
+  state.currentSnapshot = null;
   elements.previous.disabled = true;
   elements.next.disabled = true;
   elements.stepPosition.textContent = "— / —";
@@ -356,7 +366,7 @@ async function selectStep(index, { scroll = true } = {}) {
   elements.viewerEmpty.classList.add("is-hidden");
   elements.workspace.classList.remove("is-hidden");
   elements.viewerContext.innerHTML = `
-    <p class="eyebrow">Pseudocode snapshot</p>
+    <p class="eyebrow">Code snapshot</p>
     <h2></h2>
     <p></p>
   `;
@@ -371,6 +381,7 @@ async function selectStep(index, { scroll = true } = {}) {
   elements.copyState.dataset.value = step.code_state_id;
   elements.astDetails.open = false;
 
+  state.currentSnapshot = null;
   setLoading(true);
   const cacheKey = `${step.code_state_id}:${step.previous_code_state_id || ""}`;
   try {
@@ -394,7 +405,9 @@ async function selectStep(index, { scroll = true } = {}) {
 function setLoading(isLoading) {
   elements.loading.classList.toggle("is-hidden", !isLoading);
   if (isLoading) {
-    elements.snapshotView.classList.add("is-hidden");
+    elements.pseudocodeView.classList.add("is-hidden");
+    elements.astView.classList.add("is-hidden");
+    elements.astValuesView.classList.add("is-hidden");
     elements.changesView.classList.add("is-hidden");
     elements.unavailable.classList.add("is-hidden");
     elements.astDetails.classList.add("is-hidden");
@@ -402,23 +415,23 @@ function setLoading(isLoading) {
 }
 
 function renderSnapshot(snapshot) {
-  const unavailable = !snapshot.pseudocode_available;
-  elements.unavailable.classList.toggle("is-hidden", !unavailable);
-  elements.snapshotView.classList.toggle("is-hidden", unavailable || state.view !== "snapshot");
-  elements.changesView.classList.toggle("is-hidden", unavailable || state.view !== "changes");
+  state.currentSnapshot = snapshot;
 
   if (snapshot.pseudocode_available) {
     renderPseudocode(snapshot.pseudocode, new Set(snapshot.changed_lines));
     renderDiff(snapshot.diff);
   } else {
-    elements.snapshotCode.replaceChildren();
+    elements.pseudocodeCode.replaceChildren();
     elements.diffCode.replaceChildren();
   }
+  renderAstNodes(snapshot.ast_nodes, elements.astTree);
+  renderAstNodes(snapshot.ast_with_values_nodes, elements.astValuesTree);
 
   elements.changeCount.textContent = String(snapshot.changed_lines.length);
   const astMessage = snapshot.ast_error || "No AST is available for this code state.";
   elements.astCode.textContent = snapshot.ast || astMessage;
   elements.astDetails.classList.toggle("is-hidden", !snapshot.ast_available && !snapshot.ast_error);
+  updateRepresentationVisibility();
 }
 
 function renderPseudocode(pseudocode, changedLines) {
@@ -433,7 +446,22 @@ function renderPseudocode(pseudocode, changedLines) {
     item.append(code);
     fragment.append(item);
   });
-  elements.snapshotCode.replaceChildren(fragment);
+  elements.pseudocodeCode.replaceChildren(fragment);
+}
+
+function renderAstNodes(nodes, target) {
+  const fragment = document.createDocumentFragment();
+  nodes.forEach((node) => {
+    const item = document.createElement("li");
+    item.className = "tree-line";
+    item.style.setProperty("--tree-depth", String(node.depth));
+    item.dataset.depth = String(node.depth);
+    const code = document.createElement("code");
+    code.textContent = node.name;
+    item.append(code);
+    fragment.append(item);
+  });
+  target.replaceChildren(fragment);
 }
 
 function renderDiff(blocks) {
@@ -479,14 +507,52 @@ function renderDiff(blocks) {
 
 function setView(view) {
   state.view = view;
-  const snapshotSelected = view === "snapshot";
-  elements.snapshotTab.classList.toggle("is-active", snapshotSelected);
-  elements.changesTab.classList.toggle("is-active", !snapshotSelected);
-  elements.snapshotTab.setAttribute("aria-selected", String(snapshotSelected));
-  elements.changesTab.setAttribute("aria-selected", String(!snapshotSelected));
-  if (!elements.unavailable.classList.contains("is-hidden")) return;
-  elements.snapshotView.classList.toggle("is-hidden", !snapshotSelected);
-  elements.changesView.classList.toggle("is-hidden", snapshotSelected);
+  const tabs = {
+    pseudocode: elements.pseudocodeTab,
+    ast: elements.astTab,
+    "ast-values": elements.astValuesTab,
+    changes: elements.changesTab,
+  };
+  Object.entries(tabs).forEach(([name, tab]) => {
+    const selected = name === view;
+    tab.classList.toggle("is-active", selected);
+    tab.setAttribute("aria-selected", String(selected));
+  });
+  updateRepresentationVisibility();
+}
+
+function updateRepresentationVisibility() {
+  const snapshot = state.currentSnapshot;
+  const views = {
+    pseudocode: elements.pseudocodeView,
+    ast: elements.astView,
+    "ast-values": elements.astValuesView,
+    changes: elements.changesView,
+  };
+  Object.values(views).forEach((view) => view.classList.add("is-hidden"));
+  elements.unavailable.classList.add("is-hidden");
+  if (!snapshot) return;
+
+  const astAvailable = snapshot.ast_available && snapshot.ast_nodes.length > 0;
+  const available = {
+    pseudocode: snapshot.pseudocode_available,
+    ast: astAvailable,
+    "ast-values": astAvailable && snapshot.ast_with_values_nodes.length > 0,
+    changes: snapshot.pseudocode_available,
+  };
+  if (available[state.view]) {
+    views[state.view].classList.remove("is-hidden");
+    return;
+  }
+
+  const isAst = state.view === "ast" || state.view === "ast-values";
+  elements.unavailableTitle.textContent = isAst
+    ? "AST representation unavailable"
+    : "Pseudocode representation unavailable";
+  elements.unavailableMessage.textContent = isAst && snapshot.ast_error
+    ? snapshot.ast_error
+    : "This timeline position has no stored representation of this type. Its position is preserved so the development trace remains complete.";
+  elements.unavailable.classList.remove("is-hidden");
 }
 
 async function copyStateId() {
@@ -535,7 +601,9 @@ elements.scrubber.addEventListener("input", (event) => {
   selectStep(Number.parseInt(event.target.value, 10), { scroll: true });
 });
 elements.studentSearch.addEventListener("input", debounce(refreshStudentSearch, 180));
-elements.snapshotTab.addEventListener("click", () => setView("snapshot"));
+elements.pseudocodeTab.addEventListener("click", () => setView("pseudocode"));
+elements.astTab.addEventListener("click", () => setView("ast"));
+elements.astValuesTab.addEventListener("click", () => setView("ast-values"));
 elements.changesTab.addEventListener("click", () => setView("changes"));
 elements.copyState.addEventListener("click", copyStateId);
 elements.dismissError.addEventListener("click", hideError);

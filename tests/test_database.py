@@ -57,6 +57,12 @@ def test_snapshot_diff_ast_and_blank_state(dataset_dir: Path, tmp_path: Path) ->
     assert snapshot is not None
     assert snapshot["pseudocode_available"] is True
     assert snapshot["ast_available"] is True
+    assert snapshot["ast_nodes"] == [
+        {"name": "snapshot", "depth": 0},
+        {"name": "stage", "depth": 1},
+        {"name": "move", "depth": 2},
+    ]
+    assert snapshot["ast_with_values_nodes"][-1] == {"name": "move=10", "depth": 2}
     assert snapshot["changed_lines"] == [2, 3, 4]
     assert {block["kind"] for block in snapshot["diff"]} >= {"equal", "insert"}
 
@@ -64,11 +70,14 @@ def test_snapshot_diff_ast_and_blank_state(dataset_dir: Path, tmp_path: Path) ->
     assert malformed is not None
     assert malformed["ast_available"] is False
     assert malformed["ast_error"] == "The stored AST is not valid JSON."
+    assert malformed["ast_nodes"] == []
+    assert malformed["ast_with_values_nodes"] == []
 
     blank = repository.snapshot("914")
     assert blank is not None
     assert blank["pseudocode_available"] is False
     assert blank["ast_available"] is False
+    assert blank["ast_nodes"] == []
     assert blank["diff"] == []
 
 

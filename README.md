@@ -44,6 +44,34 @@ uv run learnlab-opcodes --counts
 
 Use `--data-dir PATH` to scan a different `CodeStates.csv`.
 
+## Parse Snap ASTs in Python
+
+The `snap_ast` package accepts both parsed snapshot dictionaries and the JSON
+text stored in the database:
+
+```python
+import sqlite3
+
+from snap_ast import to_ast, to_ast_with_values, tree_edit_distance
+
+connection = sqlite3.connect("data/.learnlab-history.sqlite3")
+before_json = connection.execute(
+    "SELECT ast_json FROM code_states WHERE code_state_id = '1'"
+).fetchone()[0]
+after_json = connection.execute(
+    "SELECT ast_json FROM code_states WHERE code_state_id = '2'"
+).fetchone()[0]
+
+before = to_ast(before_json)
+after = to_ast(after_json)
+distance = tree_edit_distance(before, after)
+```
+
+`to_ast` keeps node opcodes and ordered children while ignoring snapshot-specific
+IDs and values. Use `to_ast_with_values` when literal and user-defined values
+should participate in comparisons. The original Scratch project format remains
+supported and is detected automatically.
+
 ## Create an analysis database
 
 Create a separate database with exactly two tables:
