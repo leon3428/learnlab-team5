@@ -105,8 +105,7 @@ def ast_node_count(tree: AstNode) -> int:
 def normalized_tree_distance(first: AstNode, second: AstNode) -> float:
     """Return unit-cost tree-edit distance normalized to the interval [0, 1]."""
 
-    # denominator = max(ast_node_count(first), ast_node_count(second))
-    denominator = ast_node_count(first) + ast_node_count(second)
+    denominator = max(ast_node_count(first), ast_node_count(second))
     distance = tree_edit_distance(first, second) / denominator
     return min(1.0, max(0.0, float(distance)))
 
