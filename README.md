@@ -72,6 +72,28 @@ IDs and values. Use `to_ast_with_values` when literal and user-defined values
 should participate in comparisons. The original Scratch project format remains
 supported and is detected automatically.
 
+## Learn rubric heatmaps
+
+`snap_ast` can learn rubric-specific node heat from graded Snap ASTs. Full-credit
+subtrees are compared with their closest same-depth matches in the other
+full-credit and lower-scoring solutions:
+
+```python
+from snap_ast import learn_rubric_heatmaps
+
+models, annotated_solutions = learn_rubric_heatmaps(
+    solutions,
+    rubric_names,
+    max_depth=4,
+    progress=print,
+)
+```
+
+The input `solutions` are not modified. Each returned record has an
+`ast_heatmap` copy whose nodes contain `rubric_heatmap`,
+`rubric_heatmap_best_depth`, and `rubric_heatmap_best_candidate`. See
+`notebooks/build_solutions.ipynb` for the complete dataset workflow.
+
 ## Create an analysis database
 
 Create a separate database with exactly two tables:
