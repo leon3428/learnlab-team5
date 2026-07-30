@@ -94,6 +94,36 @@ The input `solutions` are not modified. Each returned record has an
 `rubric_heatmap_best_depth`, and `rubric_heatmap_best_candidate`. See
 `notebooks/build_solutions.ipynb` for the complete dataset workflow.
 
+## Match exemplar subtree features
+
+Retain up to five subtree occurrences with heat strictly greater than `0.2`
+from every full-credit exemplar, then find the nearest retained occurrence for
+each node in another AST:
+
+```python
+from snap_ast import (
+    learn_rubric_exemplar_features,
+    match_rubric_exemplar_features,
+)
+
+features = learn_rubric_exemplar_features(
+    training_solutions,
+    "Variable Increment",
+    max_depth=4,
+    features_per_exemplar=5,
+    minimum_heat=0.2,
+)
+matches = match_rubric_exemplar_features(features, target_ast)
+
+for match in matches.node_matches:
+    print(match.target_node_name, match.minimum_distance)
+```
+
+Feature occurrences are not deduplicated. Matching uses normalized tree-edit
+distance and compares each feature with the target subtree at the feature's
+depth. The result contains the winning feature metadata but does not calculate
+a grade.
+
 ## Create an analysis database
 
 Create a separate database with exactly two tables:
